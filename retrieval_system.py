@@ -5,3 +5,4 @@ class RetrievalSystem:
 
     def retrieve_top_k(self, query_descriptor, museum_descriptors, k=5):
         # Implementation for retrieving top K results
+        return
