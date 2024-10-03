@@ -1,14 +1,15 @@
 import cv2
-import os
+import glob
 
 class DataLoader:
-    def __init__(self, folder_path):
+    def __init__(self, args):
 
         """
-        Initialize the DataLoader with a folder containing images.
+        Initialize the DataLoader with a dictionary of arguments. 
+        args = {dataset:"path to dataset"}
         """
 
-        self.folder_path = folder_path
+        self.args = args
 
     def load_images_from_folder(self):
 
@@ -20,13 +21,13 @@ class DataLoader:
         """
 
         images = []
-        for filename in os.listdir(self.folder_path):
+        for imagePath in glob.glob(self.args["dataset"] + "/*.jpg"):
             try:
-                img = cv2.imread(os.path.join(self.folder_path, filename))  # OpenCV reads images in BGR
+                img = cv2.imread(imagePath)  # OpenCV reads images in BGR
                 if img is not None:
                     images.append(img)
             except Exception as e:
-                print(f"Error loading image {filename}: {e}")
+                print(f"Error loading image {imagePath}: {e}")
         return images
 
     
