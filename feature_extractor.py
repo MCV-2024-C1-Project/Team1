@@ -97,4 +97,30 @@ class FeatureExtractor:
         
         return hist
 
+def store_vectors(folder_path, extractor, output_file='features.npy'):
+    """
+    Store images as vectors in a csv file
+    
+    Args:
+        folder_path: folder with images
+        extractor: An instance of the FeatureExtractor object
+        output_file: file that stores the feature vectors in a numpy array
+
+    """
+    data_loader = DataLoader(folder_path)
+    images, filenames = data_loader.load_images_from_folder()
+
+    feature_data = [] # Store index, filename, color scale, and histogram
+    
+    # Loop over each image and compute its feature vector
+    for index, image in enumerate(images):
+        feature_vector = extractor.compute_histogram(image, color_space)  # Extract features with specified color scale
+        
+        feature_data.append((index, filenames[index], color_space, feature_vector))
+
+    # Save data as a NumPy array
+    np.save(output_file, feature_data)
+
+    print(f"Feature vectors saved to {output_file}.")
+
 
