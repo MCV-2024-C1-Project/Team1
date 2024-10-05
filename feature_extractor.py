@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 class FeatureExtractor:
     def __init__(self, bins=256):
@@ -33,7 +34,7 @@ class FeatureExtractor:
     def convert_to_rgb(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
-    def compute_histogram(self, image, color_space='BGR', normalize=True):
+    def compute_histogram(self, image, color_space='BGR', normalize=True, equalize=False):
 
         """
         Compute the histogram of the image in the specified color space.
@@ -66,36 +67,65 @@ class FeatureExtractor:
                 if normalize:
                     hist_channel = cv2.normalize(hist_channel, hist_channel).flatten()
                 hist.append(hist_channel)
+            return hist
 
         if color_space == 'Gray':
-            gray_image = self.convert_to_grayscale(image)
-            hist = cv2.calcHist([gray_image], [0], None, [self.bins], [0, 256])
+            image = self.convert_to_grayscale(image)
+            if equalize:
+                image = cv2.equalizeHist(image)
+            hist = cv2.calcHist([image], [0], None, [self.bins], [0, 256])
             if normalize:
                 hist = cv2.normalize(hist, hist).flatten()
+            return [hist]
         
         elif color_space == 'RGB':
-            rgb_image = self.convert_to_rgb(image)
+            image = self.convert_to_rgb(image)
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
         
         elif color_space == 'BGR':
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
         
         elif color_space == 'HSV':
-            hsv_image = self.convert_to_hsv(image)
-            hist = calc_hist(hsv_image, [(0, 180), (0, 256), (0, 256)])
+            image = self.convert_to_hsv(image)
+            hist = calc_hist(image, [(0, 180), (0, 256), (0, 256)])
         
         elif color_space == 'LAB':
-            lab_image = self.convert_to_lab(image)
-            hist = calc_hist(lab_image, [(0, 100), (-128, 127), (-128, 127)]) # if integer math is being used it is common to clamp a* and b* in the range of −128 to 127.
+            image = self.convert_to_lab(image)
+            hist = calc_hist(image, [(0, 100), (-128, 127), (-128, 127)]) # if integer math is being used it is common to clamp a* and b* in the range of −128 to 127.
         
         elif color_space == 'YCrCb':
-            ycrcb_image = self.convert_to_ycrcb(image)
-            hist = calc_hist(ycrcb_image, [(0, 256), (0, 256), (0, 256)])
-        
+            image = self.convert_to_ycrcb(image)
+            hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
+
         else:
             raise ValueError("Unsupported color space")
         
         return hist
+
+
+    def plot_histogram(self, hist, img=None):
+        """Plot histogram
+
+        Args:
+            hist (list): list of histograms to plot
+            img (numpy.ndarray, optional): image to be shown alongside histograms. Defaults to None.
+        """
+        n_col = len(hist)
+
+        plt.figure()
+        if img is not None:
+            n_col+=1
+            plt.subplot(1, n_col, 1)
+            plt.imshow(img)
+            plt.axis('off')
+        
+        for col in range(n_col-len(hist)+1, n_col+1):
+            plt.subplot(1, n_col, col)
+            plt.plot(hist[col-2])
+        plt.show(block=False)
+
+
+
 
 def store_vectors(folder_path, extractor, output_file='features.npy'):
     """

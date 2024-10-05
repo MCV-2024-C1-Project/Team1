@@ -4,7 +4,7 @@ from scipy.spatial import distance as dist
 class SimilarityCalculator:
     def compute_similarity(self, dict_images_hist, method="opencv"):
         """
-        Compute the histogram of the image in the specified color space.
+        Compute the similarity between histograms.
         
         Args:
             dict_images_hist (list of dictionaries): A list containing 2 images and their corresponding dictionary of histograms.
