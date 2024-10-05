@@ -8,7 +8,7 @@ class FeatureExtractor:
         Initialize the FeatureExtractor with the number of bins for the histogram.
         
         Args:
-            bins (int): Number of bins for the histogram.
+            bins (int, optional): Number of bins for the histogram. Defaults to 256.
         """
         self.bins = bins
 
@@ -35,14 +35,14 @@ class FeatureExtractor:
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
     def compute_histogram(self, image, color_space='BGR', normalize=True, equalize=False):
-
         """
         Compute the histogram of the image in the specified color space.
         
         Args:
             image (numpy.ndarray): Input image.
-            color_space (str): Color space to use ('Gray', 'RGB', 'BGR', 'HSV', 'LAB', 'YCrCb').
-            normalize (bool): Whether to normalize the histogram.
+            color_space (str, optional): Color space to use ('Gray', 'RGB', 'BGR', 'HSV', 'LAB', 'YCrCb'). Defaults to BGR.
+            normalize (bool, optional): Whether to normalize the histogram. Defaults to True.
+            equalize (bool, optional): Whether to equalize the histogram (used only with Gray color space). Defaults to False.
         
         Returns:
             numpy.ndarray: Concatenated histogram for all channels.
@@ -76,8 +76,8 @@ class FeatureExtractor:
             hist = cv2.calcHist([image], [0], None, [self.bins], [0, 256])
             if normalize:
                 hist = cv2.normalize(hist, hist).flatten()
-            return [hist]
-        
+            return hist.ravel()
+
         elif color_space == 'RGB':
             image = self.convert_to_rgb(image)
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
@@ -92,15 +92,15 @@ class FeatureExtractor:
         elif color_space == 'LAB':
             image = self.convert_to_lab(image)
             hist = calc_hist(image, [(0, 100), (-128, 127), (-128, 127)]) # if integer math is being used it is common to clamp a* and b* in the range of −128 to 127.
-        
+
         elif color_space == 'YCrCb':
             image = self.convert_to_ycrcb(image)
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
 
         else:
             raise ValueError("Unsupported color space")
-        
-        return hist
+
+        return np.concatenate(hist)
 
 
     def plot_histogram(self, hist, img=None):
