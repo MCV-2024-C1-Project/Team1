@@ -67,4 +67,6 @@ class SimilarityCalculator:
                 # sort the results
             results = sorted([(v, k) for (k, v) in results.items()])
 
+        
+
         return results 
