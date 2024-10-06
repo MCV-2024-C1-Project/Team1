@@ -6,11 +6,7 @@ class SimilarityCalculator:
     def compute_similarity(self, dict_images_hist, methodName="Correlation"):
         
         """
-<<<<<<< HEAD
         Compute the similarity between histograms in the specified color space.
-=======
-        Compute the similarity between histograms.
->>>>>>> 6daedb03a16dfd9ac2935aff96ca8fe4cc97825c
         
         Args:
             dict_images_hist (list of dictionaries): A list containing 2 images and their corresponding dictionary of histograms.
