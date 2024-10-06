@@ -63,6 +63,13 @@ You can install the required libraries with the following command:
 ```bash
 pip install numpy opencv-python plotly scipy
 ```
+OR 
+
+Use the requirements.txt file 
+```bash
+pip install -r requirements.txt
+```
+Note: Make sure with the second method you have python version >=3.10
 
 ## Repository Structure
 
@@ -85,7 +92,7 @@ This repository contains five Python files and one Jupyter Notebook, each servin
 5. **similarity_calculator.py**
    - Computes similarity scores between histograms using different metrics to rank the results. In this file, we have implemented both OpenCV and SciPy because we found different metrics that can be useful throughout the project.
 
-### Notebook:
+### Main Script:
 
-- **demo.ipynb**
-  - A Jupyter Notebook used for testing, visualizing, and demonstrating the functionality of the system step by step.
+- **main.py**
+  - A main script used for testing, visualizing, and demonstrating the functionality of the system step by step.
