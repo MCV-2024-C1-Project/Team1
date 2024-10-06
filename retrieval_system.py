@@ -1,8 +1,20 @@
 class RetrievalSystem:
-    def __init__(self, feature_extractor, similarity_calculator):
-        self.feature_extractor = feature_extractor
-        self.similarity_calculator = similarity_calculator
 
-    def retrieve_top_k(self, query_descriptor, museum_descriptors, k=5):
-        # Implementation for retrieving top K results
-        return
+    def search_top_k_values(self,color_scales_list, color_name, method="Correlation", K=1):
+        values_with_indices = []
+        for i, sublist in enumerate(color_scales_list):
+            for value, name in sublist:
+                if name == color_name:
+                    values_with_indices.append((value, i))
+                    break
+        
+        # Determine if sorting should be reversed
+        reverse_sort = method in ["Correlation", "Intersection"]
+        
+        sorted_values_with_indices = sorted(values_with_indices, key=lambda x: x[0], reverse=reverse_sort)
+        
+        # Get the top K values
+        top_k_values_with_indices = sorted_values_with_indices[:K]
+        top_k_indices = [index for _, index in top_k_values_with_indices]
+        return top_k_indices
+
