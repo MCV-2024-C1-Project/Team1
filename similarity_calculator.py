@@ -1,67 +1,52 @@
 import cv2
+import numpy as np
 from scipy.spatial import distance as dist
 
 class SimilarityCalculator:
-    def compute_similarity(self, dict_images_hist, method="opencv"):
-        """
-        Compute the similarity between histograms.
-        
+    OPENCV_METHODS = (
+        ("CORREL", cv2.HISTCMP_CORREL),
+        ("CHISQR", cv2.HISTCMP_CHISQR),
+        ("INTRSC", cv2.HISTCMP_INTERSECT),
+        ("HELLGR", cv2.HISTCMP_BHATTACHARYYA),
+    )
+
+    SCIPY_METHODS = (
+        ("MANHATTAN", dist.cityblock),
+        ("EUCLIDEAN", dist.euclidean),
+        ("CHEBYSHEV", dist.chebyshev),
+    )
+
+    methods_dict = {name: method for name, method in OPENCV_METHODS}
+    methods_dict.update({name: method for name, method in SCIPY_METHODS})
+
+    def compute_similarity(self, hist_in, hist_ref, method_name="HELLGR"):
+        """Function to compute the similarity between histograms.
+
         Args:
-            dict_images_hist (list of dictionaries): A list containing 2 images and their corresponding dictionary of histograms.
-            method (str): Which method to use.
-        
+            hist_in (list): histograms of query images.
+            hist_ref (list): histograms of reference images.
+            method_name (str, optional): similarity metric to apply ('CORREL', 'CHISQR', 'INTRSC', 'HELLGR'). Defaults to "HELLGR".
+
+        Raises:
+            ValueError: If method name is not valid.
+
         Returns:
-            results (dict): A dictionary of similarities.
+            numpy.ndarray: similarity matrix s[n,m], where n is the number of inputs and m is the number of reference histograms. s[i,j] shows the similarity between input i and reference j. 
         """
-
-        # METHOD #1: UTILIZING OPENCV
-        if method == "opencv":
-
-            # initialize OpenCV methods for histogram comparison
-            OPENCV_METHODS = (
-                ("Correlation", cv2.HISTCMP_CORREL),
-                ("Chi-Squared", cv2.HISTCMP_CHISQR),
-                ("Intersection", cv2.HISTCMP_INTERSECT),
-                ("Hellinger", cv2.HISTCMP_BHATTACHARYYA))
-            
-            # loop over the comparison methods
-            for (methodName, method) in OPENCV_METHODS:
-                # initialize the results dictionary and the sort
-                # direction
-                results = {}
-                reverse = False
-                # if we are using the correlation or intersection
-                # method, then sort the results in reverse order
-                if methodName in ("Correlation", "Intersection"):
-                    reverse = True
-
-            # loop over the dictionary 
-            for color_scale in dict_images_hist[0]:
-                # compute the distance between the two histograms
-                # using the method and update the results dictionary
-                distance = cv2.compareHist(dict_images_hist[0][color_scale], dict_images_hist[1][color_scale], method)
-                results[color_scale] = distance
-            # sort the results
-            results = sorted([(v, k) for (k, v) in results.items()], reverse = reverse)
-
-        elif method == "scipy":
-            # METHOD #2: UTILIZING SCIPY
-            # initialize the scipy methods to compute distances
-            SCIPY_METHODS = (
-                ("Euclidean", dist.euclidean),
-                ("Manhattan", dist.cityblock),
-                ("Chebysev", dist.chebyshev))
-            # loop over the comparison methods
-            for (methodName, method) in SCIPY_METHODS:
-                # initialize the dictionary 
-                results = {}
-                # loop over the index
-                for color_scale in dict_images_hist[0]:
-                    # compute the distance between the two histograms
-                    # using the method and update the results dictionary
-                    distance = method(dict_images_hist[0][color_scale], dict_images_hist[1][color_scale])
-                    results[color_scale] = distance
-                # sort the results
-                results = sorted([(v, k) for (k, v) in results.items()])
+        if method_name not in self.methods_dict:
+            raise ValueError(f"Invalid method name '{method_name}'.\nValid options: {list(self.methods_dict.keys())}")
         
-        return results 
+        self.method = self.methods_dict[method_name]
+        self.hist_in = hist_in
+        self.hist_ref = hist_ref
+        
+        sim_results = []
+        for h_in in self.hist_in:
+            sim_results_per_img = []
+            for h_ref in self.hist_ref:
+                if method_name in dict(self.SCIPY_METHODS):
+                    sim_results_per_img.append(self.method(h_in.flatten(), h_ref.flatten()))
+                elif method_name in dict(self.OPENCV_METHODS):
+                    sim_results_per_img.append(cv2.compareHist(h_in, h_ref, self.method))
+            sim_results.append(sim_results_per_img)
+        return np.array(sim_results)

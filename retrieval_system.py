@@ -1,29 +1,22 @@
-class RetrievalSystem:
-    def __init__(self, feature_extractor, similarity_calculator):
-        self.feature_extractor = feature_extractor
-        self.similarity_calculator = similarity_calculator
+import numpy as np
 
-     def retrieve_top_k(self, query_descriptor, museum_descriptors, k=10):
+class RetrievalSystem:
+    def retrieve_top_k(self, scores, reverse=False, k=10):
         """
         Retrieve the top k=10 most similar images from the museum descriptors based on the query descriptor.
 
         Args:
-            query_descriptor: Feature vector of query image
-            museum_descriptors: List containing index, filename, color_space
-            k(int): Number of most similar matches to return
+            scores (numpy.ndarray): similarity matrix s[n,m], where n is the number of inputs and m is the number of reference histograms. s[i,j] shows the similarity between input i and reference j.
+            k (int): Number of most similar matches to return
 
 
         Returns:
             list: A list of the top k=10 results where each result is [image_index, similarity_score]
         """
-        similarities = []
 
-        for index, _, _, museum_descriptor in museum_descriptors:
-            score = self.similarity_calculator.calculate_similarity(query_descriptor, museum_descriptor)
-            similarities.append((index, score))
+        if k > scores.shape[1]:
+            raise ValueError(f"Invalid number of results '{k}'.\nMust be equal or lower than: {scores.shape[1]}")
 
-        # Sort similarities in a descending order, based on similarity score
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        top_k_results = similarities[:k]
-    
-    return top_k_results
+        top_k_results = np.argsort(scores, axis=1)[:, :k]
+        
+        return top_k_results.tolist()
