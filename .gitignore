@@ -1,6 +1,9 @@
 content/
 __pycache__/
-Week1/__pycache__
-Week2/__pycache__
+Week1/__pycache__/
+Week2/__pycache__/
 Week1/.venv/
 Week2/venv/
+*.png
+Week2/*.png
+Week1/*.png
