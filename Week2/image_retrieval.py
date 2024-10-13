@@ -1,7 +1,12 @@
+import os
+import sys
 import cv2
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+
+# Add Week1 to PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Week1')))
 from data_loader import DataLoader
 from feature_extractor import FeatureExtractor
 from similarity_calculator import SimilarityCalculator
@@ -9,7 +14,7 @@ from retrieval_system import RetrievalSystem
 from evaluator import Evaluator
 
 
-def get_predictions(imgs_query, imgs_ref, color_space='HSV', similarity_measure='HELLGR', n_best_results=1, normalize_hist=True, equalize_hist=False):
+def get_predictions(imgs_query, imgs_ref, color_space='HSV', bins=256, similarity_measure='HELLGR', n_best_results=1, normalize_hist=True, equalize_hist=False):
     """Get predicted matches between the query images and the reference database
 
     Args:
@@ -24,14 +29,21 @@ def get_predictions(imgs_query, imgs_ref, color_space='HSV', similarity_measure=
     Returns:
         list: list of best n matches from the reference database, for each query image
     """
+    n_blocks_rows = 10
+    n_blocks_cols = 8
     # Get image descriptors
     hist_ref = []
     hist_query = []
     for img in imgs_ref:
-        hist_ref.append(FeatureExtractor().compute_histogram(img, color_space, normalize_hist, equalize_hist))
+        # Get descriptors
+        blocks, block_histograms = FeatureExtractor(bins=32).divide_image_in_blocks(img, color_space="YCrCb", num_blocks=(n_blocks_rows, n_blocks_cols))
+        concatenated_histogram = np.concatenate(block_histograms)
+        hist_ref.append(concatenated_histogram)
     for img in imgs_query:
-        hist_query.append(FeatureExtractor().compute_histogram(img, color_space, normalize_hist, equalize_hist))
-
+        blocks, block_histograms = FeatureExtractor(bins=32).divide_image_in_blocks(img, color_space="YCrCb", num_blocks=(n_blocks_rows, n_blocks_cols))
+        concatenated_histogram = np.concatenate(block_histograms)
+        hist_query.append(concatenated_histogram)
+    
     # Compute similarity
     scores = SimilarityCalculator().compute_similarity(hist_query, hist_ref, similarity_measure)
 
@@ -39,35 +51,3 @@ def get_predictions(imgs_query, imgs_ref, color_space='HSV', similarity_measure=
     top_results = RetrievalSystem().retrieve_top_k(scores, reverse=False, k=n_best_results)
     
     return top_results
-
-def main():
-    # Load dataset
-    imgs_ref = DataLoader({"dataset":"../content/BBDD"}).load_images_from_folder()
-    imgs_in = DataLoader({"dataset":"../content/qsd1_w1"}).load_images_from_folder()
-
-    # Get predictions
-    k_best_results = 5
-    predictions = get_predictions(imgs_query=imgs_in, imgs_ref=imgs_ref, color_space='YCrCb', similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
-
-    # Load ground-truth
-    with open('../content/qsd1_w1/gt_corresps.pkl', 'rb') as file:
-        gt = pickle.load(file)
-
-    print(f"\nlen predictions: {len(predictions)}")
-    print(predictions)
-    print(f"\nlen gt: {len(gt)}")
-    print(gt)
-
-    # Evaluate
-    mapk = Evaluator().mapk(gt, predictions, k_best_results)
-    print(f"mapk: {mapk}")
-
-    # Wait for user action to end
-    # input("Press Enter to exit")
-
-
-
-
-if __name__ == "__main__":
-    main()
-    

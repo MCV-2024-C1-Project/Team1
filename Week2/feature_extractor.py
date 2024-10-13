@@ -82,59 +82,73 @@ class FeatureExtractor:
         elif color_space == 'RGB':
             image = self.convert_to_rgb(image)
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
+            hist = np.concatenate(hist)
         
         elif color_space == 'BGR':
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
-        
+            hist = np.concatenate(hist)
+
         elif color_space == 'HSV':
             image = self.convert_to_hsv(image)
             hist = calc_hist(image, [(0, 180), (0, 256), (0, 256)])
-        
+            hist = np.concatenate(hist[1], hist[2])
+
         elif color_space == 'LAB':
             image = self.convert_to_lab(image)
             hist = calc_hist(image, [(0, 100), (-128, 127), (-128, 127)]) # if integer math is being used it is common to clamp a* and b* in the range of −128 to 127.
+            hist = np.concatenate(hist)
 
         elif color_space == 'YCrCb':
             image = self.convert_to_ycrcb(image)
             hist = calc_hist(image, [(0, 256), (0, 256), (0, 256)])
+            hist = np.concatenate(hist)
 
         else:
             raise ValueError("Unsupported color space")
 
-        return np.concatenate(hist)
-    
-    def divide_image_in_blocks(self,image,color_space='BGR',block_size=5):
+        return hist
+
+    def divide_image_in_blocks(self, image, color_space='BGR', num_blocks=(5, 5)):
         '''
-        Divide the image into blocks of a specified block_size, Computes the histograms for the blocks and returns them.
+        Divide the image into a specified number of blocks (num_blocks), computes the histograms for the blocks and returns them.
 
         Args:
             image (numpy.ndarray): Input image.
             color_space (str, optional): Color space to use ('Gray', 'RGB', 'BGR', 'HSV', 'LAB', 'YCrCb'). Defaults to BGR.
-            block_size (int, required): The size of a single block , Defaults to 5.
+            num_blocks (tuple, required): Number of blocks along (height, width). E.g., (5, 5) divides the image into 5 rows and 5 columns.
 
         Returns:
             image_blocks (list): A list of blocks that make up the image.
-            block_histograms (list): A list of histogram. each corresponds to an image block.
-
+            block_histograms (list): A list of histograms, each corresponds to an image block.
         '''
-        # Initializing list to store histograms for each block
-        blocks=[]
-        block_histograms = []
+        # Calc block size based on the image size and the number of blocks
+        num_blocks_y, num_blocks_x = num_blocks
+        block_size_y = image.shape[0] // num_blocks_y  # Block height
+        block_size_x = image.shape[1] // num_blocks_x  # Block width
         
-        # Iterating over blocks - jumping by block size to avoid 'overlapping'
-        for i in range(0, image.shape[0], block_size):
-            for j in range(0, image.shape[1], block_size):
-                # Extract block
-                block = image[i:i+block_size, j:j+block_size]
+        blocks = []
+        block_histograms = []
+        for i in range(num_blocks_y):
+            for j in range(num_blocks_x):
+                # Calc start and end points
+                y_start = i * block_size_y
+                y_end = (i + 1) * block_size_y
+                x_start = j * block_size_x
+                x_end = (j + 1) * block_size_x
+
+                # Include remaining pixels in the last block
+                if i == num_blocks_y - 1:
+                    y_end = image.shape[0]
+                if j == num_blocks_x - 1:
+                    x_end = image.shape[1]
+
+                block = image[y_start:y_end, x_start:x_end]
                 blocks.append(block)
 
-                # Computing histogram for block
                 histogram = self.compute_histogram(block, color_space=color_space, normalize=True, equalize=False)
-                
-                # Appending histogram to list
                 block_histograms.append(histogram)
 
-        return blocks,block_histograms
+        return blocks, block_histograms
     
     
     def plot_histogram(self, hist, img=None):

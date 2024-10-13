@@ -1,5 +1,6 @@
 import cv2
 import glob
+import os
 
 class DataLoader:
     def __init__(self, args):
@@ -11,7 +12,7 @@ class DataLoader:
 
         self.args = args
 
-    def load_images_from_folder(self):
+    def load_images_from_folder(self, extension="jpg", return_names=False):
 
         """
         Load all images from the folder.
@@ -21,11 +22,19 @@ class DataLoader:
         """
 
         images = []
-        for imagePath in glob.glob(self.args["dataset"] + "/*.jpg"):
+        if return_names:
+            imagesNames = []
+        for imagePath in glob.glob(self.args["dataset"] + f"/*.{extension}"):
             try:
                 img = cv2.imread(imagePath)  # OpenCV reads images in BGR
                 if img is not None:
                     images.append(img)
+                    if return_names:
+                        imagesNames.append(os.path.basename(imagePath))
             except Exception as e:
                 print(f"Error loading image {imagePath}: {e}")
+        
+        if return_names:
+            return images, imagesNames
+
         return images
