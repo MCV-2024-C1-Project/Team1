@@ -213,11 +213,11 @@ def evaluate_bg_removal(candidates, ground_truth):
 def main():
     
     # Load reference dataset
-    imgs_ref = DataLoader({"dataset":"../content/BBDD"}).load_images_from_folder()
+    imgs_ref = DataLoader({"dataset":"C:/Users/laila/Downloads/BBDD/BBDD"}).load_images_from_folder()
 
     # TASK 1 + TASK 2 ----------------------------------------------------------------
     # Load dataset
-    imgs_in_path = "../content/qsd1_w2/qsd1_w1"
+    imgs_in_path = "C:/Users/laila/Downloads/qsd1_w2/qsd1_w1"
     imgs_without_bg, imgs_names = DataLoader({"dataset": imgs_in_path}).load_images_from_folder(extension="jpg", return_names=True)
 
     # Get predictions
@@ -225,7 +225,7 @@ def main():
     predictions = image_retrieval.get_predictions(imgs_query=imgs_without_bg, imgs_ref=imgs_ref, color_space='YCrCb', bins=32, similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
 
     # Load ground-truth
-    with open('../content/qsd1_w2/qsd1_w1/gt_corresps.pkl', 'rb') as file:
+    with open('C:/Users/laila/Downloads/qsd1_w2/qsd1_w1/gt_corresps.pkl', 'rb') as file:
         gt = pickle.load(file)
 
     # Evaluate
@@ -238,7 +238,7 @@ def main():
 
     # TASK 3 -------------------------------------------------------------------------
     # Load datasets
-    imgs_in_path = "../content/qsd2_w2/qsd2_w1"
+    imgs_in_path = "C:/Users/laila/Downloads/qsd2_w2/qsd2_w1"
     imgs_with_bg, imgs_names = DataLoader({"dataset": imgs_in_path}).load_images_from_folder(extension="jpg", return_names=True)
     masks_gt, masks_gt_names = DataLoader({"dataset": imgs_in_path}).load_images_from_folder(extension="png", return_names=True)
 
@@ -270,25 +270,30 @@ def main():
 
     # TASK 5 -------------------------------------------------------------------------
     # Load dataset
-    imgs_in = DataLoader({"dataset":"../content/qsd2_w2/qsd2_w1/output"}).load_images_from_folder()
-    
+    imgs_in = DataLoader({"dataset": "C:/Users/laila/Downloads/qsd2_w2/qsd2_w1/output"}).load_images_from_folder()
+
     imgs_query = []
     for img in imgs_in:
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         non_black_pixels = np.where(img_gray != 0)
-        # Obtener los límites del área con información (sin márgenes negros)
+
+        if non_black_pixels[0].size == 0:  # Check if no non-black pixels
+            continue  # Skip this image or handle it accordingly
+
+        # Get limits of the area with information (without black margins)
         top, bottom = np.min(non_black_pixels[0]), np.max(non_black_pixels[0])
         left, right = np.min(non_black_pixels[1]), np.max(non_black_pixels[1])
-        # Recortar la imagen a esos límites
+
+        # Crop the image to those limits
         cropped_image = img[top:bottom, left:right]
         imgs_query.append(cropped_image)
 
     # Get predictions
     k_best_results = 5
     predictions = image_retrieval.get_predictions(imgs_query=imgs_query, imgs_ref=imgs_ref, color_space='YCrCb', bins=32, similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
-    
+
     # Load ground-truth
-    with open('../content/qsd2_w2/qsd2_w1/gt_corresps.pkl', 'rb') as file:
+    with open('C:/Users/laila/Downloads/qsd2_w2/qsd2_w1/gt_corresps.pkl', 'rb') as file:
         gt = pickle.load(file)
 
     # Evaluate
@@ -296,6 +301,50 @@ def main():
     print("TASK 5: Images with bg --------------")
     print(f"mapk: {mapk_result}")
     print("-------------------------------------")
+
+    for idx, img in enumerate(imgs_in):
+        mask = masks_without_bg[idx]  # Assuming masks are defined and correspond to images
+
+        # Check dimensions
+        print(f"Image shape: {img.shape}, Mask shape: {mask.shape}")
+
+        # Convert mask to grayscale if it's not already (3 channels to 1 channel)
+        if mask.ndim == 3:
+            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+
+        # Binarize the mask
+        mask = (mask > 0).astype(np.uint8) * 255  # Ensure binary mask (0 or 255)
+
+        # Ensure mask dimensions match the image
+        if mask.shape != img.shape[:2]:
+            mask = cv2.resize(mask, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
+
+        img_without_bg = cv2.bitwise_and(img, img, mask=mask)
+
+        plt.figure(figsize=(15, 5))
+
+        # Original image
+        plt.subplot(1, 3, 1)
+        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        plt.title("Imagen Original")
+        plt.axis('off')
+
+        # Background mask
+        plt.subplot(1, 3, 2)
+        plt.imshow(mask, cmap='gray')
+        plt.title("Máscara del Fondo")
+        plt.axis('off')
+
+        # Image without background
+        plt.subplot(1, 3, 3)
+        plt.imshow(cv2.cvtColor(img_without_bg, cv2.COLOR_BGR2RGB))
+        plt.title("Imagen Sin Fondo")
+        plt.axis('off')
+
+        # Save the figure
+        plt.savefig(f'output_image_{idx}.png', bbox_inches='tight')
+        plt.close()
+
 
 
 if __name__ == "__main__":
