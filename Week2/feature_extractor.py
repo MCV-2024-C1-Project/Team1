@@ -91,7 +91,7 @@ class FeatureExtractor:
         elif color_space == 'HSV':
             image = self.convert_to_hsv(image)
             hist = calc_hist(image, [(0, 180), (0, 256), (0, 256)])
-            hist = np.concatenate(hist[1], hist[2])
+            hist = np.concatenate(hist)
 
         elif color_space == 'LAB':
             image = self.convert_to_lab(image)

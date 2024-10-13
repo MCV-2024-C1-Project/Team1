@@ -213,11 +213,11 @@ def evaluate_bg_removal(candidates, ground_truth):
 def main():
     
     # Load reference dataset
-    imgs_ref = DataLoader({"dataset":"C:/Users/laila/Downloads/BBDD/BBDD"}).load_images_from_folder()
+    imgs_ref = DataLoader({"dataset":"../content/BBDD"}).load_images_from_folder()
 
     # TASK 1 + TASK 2 ----------------------------------------------------------------
     # Load dataset
-    imgs_in_path = "C:/Users/laila/Downloads/qsd1_w2/qsd1_w1"
+    imgs_in_path = "../content/qsd1_w2/qsd1_w1"
     imgs_without_bg, imgs_names = DataLoader({"dataset": imgs_in_path}).load_images_from_folder(extension="jpg", return_names=True)
 
     # Get predictions
@@ -225,7 +225,7 @@ def main():
     predictions = image_retrieval.get_predictions(imgs_query=imgs_without_bg, imgs_ref=imgs_ref, color_space='YCrCb', bins=32, similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
 
     # Load ground-truth
-    with open('C:/Users/laila/Downloads/qsd1_w2/qsd1_w1/gt_corresps.pkl', 'rb') as file:
+    with open('../content/qsd1_w2/qsd1_w1/gt_corresps.pkl', 'rb') as file:
         gt = pickle.load(file)
 
     # Evaluate
@@ -238,7 +238,7 @@ def main():
 
     # TASK 3 -------------------------------------------------------------------------
     # Load datasets
-    imgs_in_path = "C:/Users/laila/Downloads/qsd2_w2/qsd2_w1"
+    imgs_in_path = "../content/qsd2_w2/qsd2_w1"
     imgs_with_bg, imgs_names = DataLoader({"dataset": imgs_in_path}).load_images_from_folder(extension="jpg", return_names=True)
     masks_gt, masks_gt_names = DataLoader({"dataset": imgs_in_path}).load_images_from_folder(extension="png", return_names=True)
 
@@ -270,7 +270,7 @@ def main():
 
     # TASK 5 -------------------------------------------------------------------------
     # Load dataset
-    imgs_in = DataLoader({"dataset": "C:/Users/laila/Downloads/qsd2_w2/qsd2_w1/output"}).load_images_from_folder()
+    imgs_in = DataLoader({"dataset": "../content/qsd2_w2/qsd2_w1/output"}).load_images_from_folder()
 
     imgs_query = []
     for img in imgs_in:
@@ -293,7 +293,7 @@ def main():
     predictions = image_retrieval.get_predictions(imgs_query=imgs_query, imgs_ref=imgs_ref, color_space='YCrCb', bins=32, similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
 
     # Load ground-truth
-    with open('C:/Users/laila/Downloads/qsd2_w2/qsd2_w1/gt_corresps.pkl', 'rb') as file:
+    with open('../content/qsd2_w2/qsd2_w1/gt_corresps.pkl', 'rb') as file:
         gt = pickle.load(file)
 
     # Evaluate
@@ -305,8 +305,8 @@ def main():
     for idx, img in enumerate(imgs_in):
         mask = masks_without_bg[idx]  # Assuming masks are defined and correspond to images
 
-        # Check dimensions
-        print(f"Image shape: {img.shape}, Mask shape: {mask.shape}")
+        # # Check dimensions
+        # print(f"Image shape: {img.shape}, Mask shape: {mask.shape}")
 
         # Convert mask to grayscale if it's not already (3 channels to 1 channel)
         if mask.ndim == 3:
@@ -345,6 +345,64 @@ def main():
         plt.savefig(f'output_image_{idx}.png', bbox_inches='tight')
         plt.close()
 
+    # TASK 6 -------------------------------------------------------------------------
+    imgs_test_path = "../content/qst_w2/w2"
+
+    # A. Test for images with no bg ------------
+    # Images without bg
+    imgs_test_without_bg_path = os.path.join(imgs_test_path, "qst1_w2")
+    imgs_test_without_bg, imgs_test_without_bg_names = DataLoader({"dataset": imgs_test_without_bg_path}).load_images_from_folder(extension="jpg", return_names=True)
+    # Create output directory
+    output_path_no_bg = f"{imgs_test_without_bg_path}/output"
+    os.makedirs(output_path_no_bg, exist_ok=True) 
+    # Get predictions
+    k_best_results = 10
+    predictions = image_retrieval.get_predictions(imgs_query=imgs_test_without_bg, imgs_ref=imgs_ref, color_space='YCrCb', bins=32, similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
+    # Save predictions
+    filepath = os.path.join(output_path_no_bg, "result.pkl")
+    with open(filepath, 'wb') as file:
+        pickle.dump(predictions, file)
+    
+    # with open(filepath, 'rb') as file:
+    #     p = pickle.load(file)
+    # print(p)
+    # ------------------------------------------
+
+    # B. Test for images with no bg ------------
+    # Load dataset
+    imgs_test_with_bg_path = os.path.join(imgs_test_path, "qst2_w2/qst2_w1")
+    imgs_test_with_bg, imgs_test_with_bg_names = DataLoader({"dataset": imgs_test_with_bg_path}).load_images_from_folder(extension="jpg", return_names=True)
+    #Create output directory
+    output_path_bg = f"{imgs_test_with_bg_path}/output"
+    os.makedirs(output_path_bg, exist_ok=True)    
+    
+    # Compute bg removal
+    compute_bg_removal(imgs_test_with_bg, imgs_test_with_bg_names, output_path_bg)
+    imgs_in = DataLoader({"dataset":output_path_bg}).load_images_from_folder()
+    print(len(imgs_in))
+    imgs_query = []
+    for img in imgs_in:
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        non_black_pixels = np.where(img_gray != 0)
+        # Get limits of area with info
+        top, bottom = np.min(non_black_pixels[0]), np.max(non_black_pixels[0])
+        left, right = np.min(non_black_pixels[1]), np.max(non_black_pixels[1])
+        # Crop image to reduce black borders
+        cropped_image = img[top:bottom, left:right]
+        imgs_query.append(cropped_image)
+
+    # Get predictions
+    k_best_results = 10
+    predictions = image_retrieval.get_predictions(imgs_query=imgs_query, imgs_ref=imgs_ref, color_space='YCrCb', bins=32, similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
+    # Save predictions
+    filepath = os.path.join(output_path_bg, "result.pkl")
+    with open(filepath, 'wb') as file:
+        pickle.dump(predictions, file)
+    
+    # with open(filepath, 'rb') as file:
+    #     p = pickle.load(file)
+    # print(p)
+    # ------------------------------------------
 
 
 if __name__ == "__main__":
