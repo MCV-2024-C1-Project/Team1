@@ -39,7 +39,7 @@ The project is structured into four phases divided in weeks, each contributing t
 - **Goal**: Given a museum dataset and two different query dataset, we have to carry out with several tasks.
 - **Tasks**: The system will utilize two methods:
   1. **Block-based Histograms**: with qsd1_w2 (images without background but cropped) divide images in non-overlapping blocks; compute histograms per block; concatenate histograms. Getting the best method (number of blocks, bins, color scale, distance...), evaluate the retrieval_system and compare it with the result of week 1.
-  2. **HVS Histogram**: with qsd2_w2 (images with background) remove background only using color (not edges detectors are allowed), apply retrieval system and return correspondences for each painting. 
+  2. **Remove background and apply retrieval**: with qsd2_w2 (images with background) remove background only using color (not edges detectors are allowed), apply retrieval system and return correspondences for each painting. 
 
 ---
 
