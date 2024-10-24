@@ -1,13 +1,14 @@
+import os
 import cv2
 import numpy as np
 from scipy.signal import wiener
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
 
-from Week3.data_loader import DataLoader
+from data_loader import DataLoader
 
 class Denoising:
-    def __init__(self, noisy_image_path, database_path):
+    def __init__(self, noisy_image_path, database_path, denoised_dir):
         self.noisy_image_path = noisy_image_path
         self.database_path = database_path
         self.db_loader = DataLoader({"dataset": self.database_path})
@@ -50,46 +51,55 @@ class Denoising:
         ssim_value = ssim(original, denoised, multichannel=True)
         return psnr_value, ssim_value
 
-    def process_images(self):
+    def process_images(self, plot=False):
         noisy_loader = DataLoader({"dataset": self.noisy_image_path})
-        noisy_images = noisy_loader.load_images_from_folder(extension="jpg")
+        noisy_images, noisy_names = noisy_loader.load_images_from_folder(extension="jpg", return_names=True)
 
         print(f'Mean Gradient from Database: {self.mean_gradient}')
         print(f'Standard Deviation of Gradient from Database: {self.std_gradient}')
         print(f'Threshold for Noise Detection: {self.threshold}')
 
-        for image in noisy_images:
+        for idx, image in enumerate(noisy_images):
             gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-            # Determinar si la imagen tiene ruido
+            # Determine if the image has noise
             if self.has_noise(gray_image):  # Usar el umbral
                 denoised_image = self.denoise_image(image)
             else:
                 denoised_image = image
 
-            # Calcular y mostrar estadísticas
+            # Calc statistics
             psnr_value, ssim_value = self.calculate_statistics(gray_image,
                                                                cv2.cvtColor(denoised_image, cv2.COLOR_BGR2GRAY))
 
-            # Mostrar imágenes originales y denoised
-            plt.figure(figsize=(10, 5))
-            plt.subplot(1, 2, 1)
-            plt.title('Original Image')
-            plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            plt.axis('off')
+            # Save denoised images
+            cv2.imwrite(os.path.join(denoised_dir, noisy_names[idx]), denoised_image)
 
-            plt.subplot(1, 2, 2)
-            plt.title(f'Denoised Image\nPSNR: {psnr_value:.2f}, SSIM: {ssim_value:.2f}')
-            plt.imshow(cv2.cvtColor(denoised_image, cv2.COLOR_BGR2RGB))
-            plt.axis('off')
+            if plot:
+                # Show original and denoised
+                plt.figure(figsize=(10, 5))
+                plt.subplot(1, 2, 1)
+                plt.title('Original Image')
+                plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                plt.axis('off')
 
-            plt.show()
+                plt.subplot(1, 2, 2)
+                plt.title(f'Denoised Image\nPSNR: {psnr_value:.2f}, SSIM: {ssim_value:.2f}')
+                plt.imshow(cv2.cvtColor(denoised_image, cv2.COLOR_BGR2RGB))
+                plt.axis('off')
+
+                plt.show()
 
 
 # Uso de la clase Denoising
-noisy_images_path = r'C:\Users\Julia\OneDrive\Juliahacker\Team1project\Team1\content\qsd1_w3'
-database_path = r'C:\Users\Julia\OneDrive\Juliahacker\Team1project\Team1\content\BBDD'
+# noisy_images_path = "../content/qsd1_w3_test"
+# database_path = "../content/BBDD_test"
 
-denoising = Denoising(noisy_images_path, database_path)
-denoising.process_images()
+# output_dir = "output"
+# denoised_dir = os.path.join(output_dir, "denoised")
+# os.makedirs(output_dir, exist_ok=True)
+# os.makedirs(denoised_dir, exist_ok=True)
+
+# denoising = Denoising(noisy_images_path, database_path, denoised_dir)
+# denoising.process_images()
 
