@@ -11,6 +11,7 @@ class Denoising:
     def __init__(self, noisy_image_path, database_path, denoised_dir):
         self.noisy_image_path = noisy_image_path
         self.database_path = database_path
+        self.denoised_dir = denoised_dir
         self.db_loader = DataLoader({"dataset": self.database_path})
         self.db_images = self.db_loader.load_images_from_folder(extension="jpg")
         self.mean_gradient, self.std_gradient = self.calculate_mean_gradient()
@@ -73,7 +74,7 @@ class Denoising:
                                                                cv2.cvtColor(denoised_image, cv2.COLOR_BGR2GRAY))
 
             # Save denoised images
-            cv2.imwrite(os.path.join(denoised_dir, noisy_names[idx]), denoised_image)
+            cv2.imwrite(os.path.join(self.denoised_dir, noisy_names[idx]), denoised_image)
 
             if plot:
                 # Show original and denoised

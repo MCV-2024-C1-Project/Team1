@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import dct, idct
 from skimage import feature, color, io
+from scipy.ndimage import map_coordinates
 import pywt
 
 
@@ -173,7 +174,6 @@ class FeatureExtractor:
         img_adj = img[:block_h*n_row, :block_w*n_col]
 
         # Divide image
-        # Dividir en bloques (subarrays)
         blocks = (img_adj
                 .reshape(n_row, block_h, n_col, block_w, ch)
                 .swapaxes(1, 2))
@@ -225,7 +225,7 @@ class FeatureExtractor:
             return (c * (n_blocks_h * n_blocks_w * N)) + (i * n_blocks_w * N) + (j * N) + k
 
         # Convert image to grayscale
-        # img = self.convert_to_grayscale(img)
+        img = self.convert_to_grayscale(img)
         # img = self.convert_to_ycrcb(img)
         # img = img[:,:,0]
         
@@ -255,13 +255,45 @@ class FeatureExtractor:
 
     def get_lbp_descriptors(self, img, scales=[(1,8)], method="uniform", block_size=None, n_blocks=(4,4)):
         
+        def bilinear_interpolation(img, x, y):
+            return map_coordinates(img, [[y], [x]], order=1)[0]
+        
         def compute_lbp_hist(block, n_points, radius, method, num_bins):
-            lbp = feature.local_binary_pattern(block, n_points, radius, method=method)
+            h, w = block.shape
+            center_values = block.flatten()
+            
+            # Create grid of coordinates
+            x, y = np.meshgrid(np.arange(w), np.arange(h))
+            x = x.flatten()
+            y = y.flatten()
+            
+            # Calculate neighbor positions
+            theta = np.linspace(0, 2 * np.pi, n_points, endpoint=False)
+            x_offsets = radius * np.cos(theta)
+            y_offsets = radius * np.sin(theta)
+
+            # Prepare an array for neighbor values
+            neighbor_values = np.zeros((h, w, n_points))
+
+            for i in range(n_points):
+                # Compute the interpolated neighbor positions
+                neighbor_x = x + x_offsets[i]
+                neighbor_y = y + y_offsets[i]
+                neighbor_values[:, :, i] = bilinear_interpolation(block, neighbor_x, neighbor_y).reshape(h, w)
+
+            center_values = center_values.reshape(h, w, 1)
+
+            # Create LBP binary pattern
+            binary_patterns = (neighbor_values >= center_values[:, np.newaxis]).astype(int)
+            lbp = (binary_patterns * (1 << np.arange(n_points))).sum(axis=2)
+
+            # Compute histogram
             hist, _ = np.histogram(lbp.ravel(), bins=num_bins, range=(0, num_bins))
             # Normalize histogram
             hist = hist.astype("float")
-            hist /= (hist.sum() + 1e-6)  # Sumar un pequeño valor para evitar división por cero
+            hist /= (hist.sum() + 1e-6)
             return hist
+
         # Convert image to grayscale
         img = self.convert_to_grayscale(img)
         # img = self.convert_to_ycrcb(img)
@@ -282,7 +314,7 @@ class FeatureExtractor:
 
         lbp_hist_blocks_multi = []
         for radius, n_points in scales:
-            n_bins = n_points + 2
+            n_bins = n_points + 2 if method == "uniform" else 2 ** n_points
 
             lbp_hist_blocks = np.zeros((n_row, n_col, ch, n_bins), dtype=np.float32)
             for i in range(n_row):
