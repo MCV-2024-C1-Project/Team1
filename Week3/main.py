@@ -33,6 +33,7 @@ def get_predictions(imgs_query, imgs_ref, feature_methods=None, similarity_measu
     """
     descriptors_ref = []
     descriptors_query = []
+    top_results = []
 
     def extract_descriptors(img, feature_methods):
         """Extracts descriptors from an image according to specified methods.
@@ -67,42 +68,75 @@ def get_predictions(imgs_query, imgs_ref, feature_methods=None, similarity_measu
 
     for img in imgs_ref:
         descriptors_ref.append(extract_descriptors(img, feature_methods))
-    for img in imgs_query:
-        descriptors_query.append(extract_descriptors(img, feature_methods))
+    
+    if all(isinstance(i, list) for i in imgs_query):  # List of lists
+        for img_group in imgs_query:
+            # print(f"img group: {len(img_group)}")
+            group_descriptors = []
 
-    scores = SimilarityCalculator().compute_similarity(descriptors_query, descriptors_ref, similarity_measure)
+            for img in img_group:
+                group_descriptors.append(extract_descriptors(img, feature_methods))
+            # print(f"group descriptors: {len(group_descriptors)}")
 
-    top_results = RetrievalSystem().retrieve_top_k(scores, reverse=False, k=k_best_results)
+            group_scores = []
+            for descriptor in group_descriptors:
+                # print(f"descriptor: {len(descriptor)}")
+                # print(f"descriptor_ref: {len(descriptors_ref)}")
+                scores = SimilarityCalculator().compute_similarity([descriptor], descriptors_ref, similarity_measure)
+                group_scores.append(scores)
+            # print(f"group scores: {len(group_scores)}")
+            
+            group_top_results = [RetrievalSystem().retrieve_top_k(score, reverse=False, k=k_best_results)[0] for score in group_scores]
+            # print(f"group top results: {len(group_top_results)}")
+
+            group_top_results = [result[0] if len(result) == 1 else result for result in group_top_results]
+
+            top_results.append(group_top_results)
+    else:
+        for img in imgs_query:
+            descriptors_query.append(extract_descriptors(img, feature_methods))
+
+        scores = SimilarityCalculator().compute_similarity(descriptors_query, descriptors_ref, similarity_measure)
+
+        top_results = RetrievalSystem().retrieve_top_k(scores, reverse=False, k=k_best_results)
     
     return top_results
 
 
 def main():
+    # Load reference dataset
     imgs_ref_path = "../content/BBDD"
+    imgs_ref = DataLoader({"dataset":imgs_ref_path}).load_images_from_folder()
+
+    # TASK 1 ----------------------------------------------------------------
+    # Load datasets
+    # Gt images
     imgs_non_aug_path = "../content/qsd1_w3/non_augmented"
+    imgs_non_aug = DataLoader({"dataset":imgs_non_aug_path}).load_images_from_folder()
+    # Noisy images
     imgs_noisy_path = "../content/qsd1_w3"
+    imgs_noisy, noisy_names = DataLoader({"dataset":imgs_noisy_path}).load_images_from_folder(return_names=True)
 
     output_dir = "output"
     denoised_dir = os.path.join(output_dir, "denoised")
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(denoised_dir, exist_ok=True)
 
-    # Load dataset
-    imgs_ref = DataLoader({"dataset":imgs_ref_path}).load_images_from_folder()
-    imgs_non_aug = DataLoader({"dataset":imgs_non_aug_path}).load_images_from_folder()
-    imgs_noisy = DataLoader({"dataset":imgs_noisy_path}).load_images_from_folder()
+    imgs_denoised = Denoising(imgs_noisy, imgs_ref, noisy_names=noisy_names, denoised_dir=denoised_dir).process_images(plot=False)
 
-    # Denoise
-    # denoising = Denoising(imgs_noisy_path, imgs_ref_path, denoised_dir)
-    # denoising.process_images(plot=False)
+    print(len(imgs_denoised))
 
+    # --------------------------------------------------------------------------------
+
+    # TASK 2 -------------------------------------------------------------------------
+    print("TASK 2 -------------------------------------------------")
     imgs_denoised = DataLoader({"dataset": denoised_dir}).load_images_from_folder()
 
     # Get predictions
     feature_methods = {
-        # 'dct': {'block_size': 8, 'N': 6},
-        'lbp': {'scales': [(1, 12)], 'block_size': 16},
-        # 'wavelet' : {'block_size': 8},
+        'dct': {'block_size': 8, 'N': 6},
+        'lbp': {'scales': [(1, 12)], 'block_size': 8, 'method': "uniform"},
+        'wavelet' : {'block_size': 8},
         # 'histogram': {'color_space': 'YCrCb', 'num_blocks': (10, 8)}
     }
     k_best_results = 1
@@ -126,6 +160,48 @@ def main():
     # Evaluate
     mapk = Evaluator().mapk(gt, predictions, k_best_results)
     print(f"mapk: {mapk}")
+    print("--------------------------------------------------------")
+    # --------------------------------------------------------------------------------
+
+    # TASK 3 + TASK 4 ----------------------------------------------------------------
+    print("TASK 3 + TASK 4 ----------------------------------------")
+
+    with open('cropped_paintings.pkl', 'rb') as file:
+        imgs_cropped = pickle.load(file)
+    
+    # Denoise
+    imgs_denoised = Denoising(imgs_cropped, imgs_ref).process_images(plot=False)
+
+    # Get predictions
+    feature_methods = {
+        'dct': {'block_size': 8, 'N': 6},
+        'lbp': {'scales': [(1, 12)], 'block_size': 8, 'method': "uniform"},
+        'wavelet' : {'block_size': 8},
+        # 'histogram': {'color_space': 'YCrCb', 'num_blocks': (10, 8)}
+    }
+    k_best_results = 1
+    predictions = get_predictions(
+                                    imgs_query = imgs_denoised, 
+                                    imgs_ref = imgs_ref, 
+                                    feature_methods = feature_methods, 
+                                    similarity_measure = 'MANHATTAN', 
+                                    k_best_results = k_best_results
+                                )
+
+    # Load ground-truth
+    with open('../content/qsd2_w3/gt_corresps.pkl', 'rb') as file:
+        gt = pickle.load(file)
+
+    print(f"\nlen predictions: {len(predictions)}")
+    print(predictions)
+    print(f"\nlen gt: {len(gt)}")
+    print(gt)
+
+    # Evaluate
+    mapk = Evaluator().mapk(gt, predictions, k_best_results)
+    print(f"mapk: {mapk}")
+
+    print("--------------------------------------------------------")
 
     # Wait for user action to end
     # input("Press Enter to exit")

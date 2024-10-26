@@ -25,7 +25,13 @@ class FeatureExtractor:
     
     # Functions for different color scales 
     def convert_to_grayscale(self, image):
-        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        if image.ndim == 3 and image.shape[2] == 3:
+            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        elif image.ndim == 2:  # Already grayscale
+            return image
+        else:
+            raise ValueError("Invalid image format: expected 2D (grayscale) or 3D (BGR) array.")
+        # return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     def convert_to_hsv(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2HSV)

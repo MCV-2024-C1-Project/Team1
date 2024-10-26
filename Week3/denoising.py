@@ -8,12 +8,11 @@ import matplotlib.pyplot as plt
 from data_loader import DataLoader
 
 class Denoising:
-    def __init__(self, noisy_image_path, database_path, denoised_dir):
-        self.noisy_image_path = noisy_image_path
-        self.database_path = database_path
+    def __init__(self, noisy_images, reference_images, noisy_names=None, denoised_dir=None):
+        self.noisy_images = noisy_images
+        self.noisy_names = noisy_names
+        self.db_images = reference_images
         self.denoised_dir = denoised_dir
-        self.db_loader = DataLoader({"dataset": self.database_path})
-        self.db_images = self.db_loader.load_images_from_folder(extension="jpg")
         self.mean_gradient, self.std_gradient = self.calculate_mean_gradient()
         self.threshold = self.mean_gradient - 2 * self.std_gradient
 
@@ -52,32 +51,33 @@ class Denoising:
         ssim_value = ssim(original, denoised, multichannel=True)
         return psnr_value, ssim_value
 
-    def process_images(self, plot=False):
-        noisy_loader = DataLoader({"dataset": self.noisy_image_path})
-        noisy_images, noisy_names = noisy_loader.load_images_from_folder(extension="jpg", return_names=True)
-
+    def process_images(self, denoised_path=None, plot=False):
         print(f'Mean Gradient from Database: {self.mean_gradient}')
         print(f'Standard Deviation of Gradient from Database: {self.std_gradient}')
         print(f'Threshold for Noise Detection: {self.threshold}')
+        denoised_images = []
 
-        for idx, image in enumerate(noisy_images):
+        def process_single_image(image, idx):
+            """Helper function to process a single image."""
             gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
+            
             # Determine if the image has noise
-            if self.has_noise(gray_image):  # Usar el umbral
+            if self.has_noise(gray_image):  # Use threshold
                 denoised_image = self.denoise_image(image)
             else:
                 denoised_image = image
 
-            # Calc statistics
-            psnr_value, ssim_value = self.calculate_statistics(gray_image,
-                                                               cv2.cvtColor(denoised_image, cv2.COLOR_BGR2GRAY))
+            # Calculate statistics
+            psnr_value, ssim_value = self.calculate_statistics(
+                gray_image, cv2.cvtColor(denoised_image, cv2.COLOR_BGR2GRAY)
+            )
 
-            # Save denoised images
-            cv2.imwrite(os.path.join(self.denoised_dir, noisy_names[idx]), denoised_image)
+            # Save denoised image if path is provided
+            if self.denoised_dir is not None:
+                cv2.imwrite(os.path.join(self.denoised_dir, self.noisy_names[idx]), denoised_image)
 
             if plot:
-                # Show original and denoised
+                # Show original and denoised images
                 plt.figure(figsize=(10, 5))
                 plt.subplot(1, 2, 1)
                 plt.title('Original Image')
@@ -88,8 +88,18 @@ class Denoising:
                 plt.title(f'Denoised Image\nPSNR: {psnr_value:.2f}, SSIM: {ssim_value:.2f}')
                 plt.imshow(cv2.cvtColor(denoised_image, cv2.COLOR_BGR2RGB))
                 plt.axis('off')
-
                 plt.show()
+
+            return denoised_image
+
+        for idx, img_group in enumerate(self.noisy_images):
+            if isinstance(img_group, list):  # If img_group is a list of images
+                processed_group = [process_single_image(image, idx) for image in img_group]
+                denoised_images.append(processed_group)
+            else:  # If img_group is a single image
+                denoised_images.append(process_single_image(img_group, idx))
+
+        return denoised_images
 
 
 # Uso de la clase Denoising
