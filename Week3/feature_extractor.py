@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import dct, idct
+from skimage import feature, color, io
 
 
 class FeatureExtractor:
@@ -251,7 +252,50 @@ class FeatureExtractor:
 
         return dct_descriptors
 
-    
+    def get_lbp_descriptors(self, img, scales=[(1,8)], method="uniform", block_size=None, n_blocks=(4,4)):
+        
+        def compute_lbp_hist(block, n_points, radius, method, num_bins):
+            lbp = feature.local_binary_pattern(block, n_points, radius, method=method)
+            hist, _ = np.histogram(lbp.ravel(), bins=num_bins, range=(0, num_bins))
+            # Normalize histogram
+            hist = hist.astype("float")
+            hist /= (hist.sum() + 1e-6)  # Sumar un pequeño valor para evitar división por cero
+            return hist
+        # Convert image to grayscale
+        img = self.convert_to_grayscale(img)
+        # img = self.convert_to_ycrcb(img)
+        # img = img[:,:,0]
+        
+        # Resize image
+        resized_img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_LINEAR)
+        
+        # Divide image in blocks
+        if block_size is not None:
+            blocks = self.divide_img_in_n_blocks(img=resized_img, block_size=block_size)
+            block_h, block_w = block_size, block_size if isinstance(block_size, int) else block_size
+        else:
+            blocks = self.divide_img_in_n_blocks(img=resized_img, n_blocks=n_blocks)
+            block_h, block_w = blocks.shape[2], blocks.shape[3]
+        
+        n_col, n_row, ch = blocks.shape[1], blocks.shape[0], blocks.shape[4]
+
+        lbp_hist_blocks_multi = []
+        for radius, n_points in scales:
+            n_bins = n_points + 2
+
+            lbp_hist_blocks = np.zeros((n_row, n_col, ch, n_bins), dtype=np.float32)
+            for i in range(n_row):
+                for j in range(n_col):
+                    for c in range(ch):
+                        lbp_hist_blocks[i,j,c] = compute_lbp_hist(blocks[i,j,:,:,c], n_points, radius, method, n_bins)
+            
+            lbp_hist_blocks_multi.append(lbp_hist_blocks)
+
+        lbp_descriptors = np.concatenate([h.flatten() for h in lbp_hist_blocks_multi])
+
+        return lbp_descriptors
+
+
     def plot_histogram(self, hist, img=None):
         """Plot histogram
 

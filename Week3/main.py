@@ -31,10 +31,12 @@ def get_predictions(imgs_query, imgs_ref, color_space='HSV', similarity_measure=
     descriptors_ref = []
     descriptors_query = []
     for img in imgs_ref:
-        descriptors_ref.append(FeatureExtractor().get_dct_descriptors(img, block_size=8, N=6))
+        # descriptors_ref.append(FeatureExtractor().get_dct_descriptors(img, block_size=block_size_dct, N=N_dct))
+        descriptors_ref.append(FeatureExtractor().get_lbp_descriptors(img, scales=[(1,8), (2,16), (3,24)], block_size=8))
     for img in imgs_query:
-        descriptors_query.append(FeatureExtractor().get_dct_descriptors(img, block_size=8, N=6))
-    
+        # descriptors_query.append(FeatureExtractor().get_dct_descriptors(img, block_size=block_size_dct, N=N_dct))
+        descriptors_query.append(FeatureExtractor().get_lbp_descriptors(img, scales=[(1,8), (2,16), (3,24)], block_size=8))
+
     # Compute similarity
     scores = SimilarityCalculator().compute_similarity(descriptors_query, descriptors_ref, similarity_measure)
 
