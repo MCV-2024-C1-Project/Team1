@@ -32,10 +32,12 @@ def get_predictions(imgs_query, imgs_ref, color_space='HSV', similarity_measure=
     descriptors_query = []
     for img in imgs_ref:
         # descriptors_ref.append(FeatureExtractor().get_dct_descriptors(img, block_size=block_size_dct, N=N_dct))
-        descriptors_ref.append(FeatureExtractor().get_lbp_descriptors(img, scales=[(1,8), (2,16), (3,24)], block_size=8))
+        # descriptors_ref.append(FeatureExtractor().get_lbp_descriptors(img, scales=[(1,8), (2,16), (3,24)], block_size=8))
+        descriptors_ref.append(FeatureExtractor().get_wavelet_descriptors(img, block_size=8))
     for img in imgs_query:
         # descriptors_query.append(FeatureExtractor().get_dct_descriptors(img, block_size=block_size_dct, N=N_dct))
-        descriptors_query.append(FeatureExtractor().get_lbp_descriptors(img, scales=[(1,8), (2,16), (3,24)], block_size=8))
+        # descriptors_query.append(FeatureExtractor().get_lbp_descriptors(img, scales=[(1,8), (2,16), (3,24)], block_size=8))
+        descriptors_query.append(FeatureExtractor().get_wavelet_descriptors(img, block_size=8))
 
     # Compute similarity
     scores = SimilarityCalculator().compute_similarity(descriptors_query, descriptors_ref, similarity_measure)
@@ -67,7 +69,7 @@ def main():
     imgs_denoised = DataLoader({"dataset":denoised_dir}).load_images_from_folder()
 
     # Get predictions
-    k_best_results = 5
+    k_best_results = 1
     predictions = get_predictions(imgs_query=imgs_denoised, imgs_ref=imgs_ref, color_space='YCrCb', similarity_measure='MANHATTAN', n_best_results=k_best_results, normalize_hist=True, equalize_hist=False)
 
     # Load ground-truth

@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import dct, idct
 from skimage import feature, color, io
+import pywt
 
 
 class FeatureExtractor:
@@ -295,6 +296,44 @@ class FeatureExtractor:
 
         return lbp_descriptors
 
+    def get_wavelet_descriptors(self, image, n_blocks=(4, 4), block_size=None, wavelet='db1', N=6):
+
+        def apply_wavelet(block):
+            # apply 2D wavelet
+            coeffs = pywt.dwt2(block, wavelet)
+            # split data into 4 sub-bands
+            LL, (LH, HL, HH) = coeffs
+            # flatten and concatenate sub-bands
+            return np.concatenate([LL.flatten(), LH.flatten(), HL.flatten(), HH.flatten()])
+
+        resized_img = cv2.resize(image, (128, 128), interpolation=cv2.INTER_LINEAR)
+
+        # divide image into blocks
+        if block_size is not None:
+            blocks = self.divide_img_in_n_blocks(img=resized_img, block_size=block_size)
+            block_h, block_w = block_size, block_size if isinstance(block_size, int) else block_size
+        else:
+            blocks = self.divide_img_in_n_blocks(img=resized_img, n_blocks=n_blocks)
+            block_h, block_w = blocks.shape[2], blocks.shape[3]
+
+        descriptors = []
+
+        for i in range(blocks.shape[0]):  # rows
+            for j in range(blocks.shape[1]):  # cols
+                for c in range(blocks.shape[-1]):  # channels
+                    # apply wavelet to each block and get coefficients
+                    block_coeffs = apply_wavelet(blocks[i, j, :, :, c])
+
+                    # take the first N coefficients
+                    selected_coeffs = block_coeffs[:N]
+                    descriptors.extend(selected_coeffs)
+
+        descriptors = np.array(descriptors)
+        mean_global = np.mean(descriptors)
+        std_global = np.std(descriptors) if np.std(descriptors) != 0 else 1
+        descriptors = (descriptors - mean_global) / std_global
+
+        return descriptors
 
     def plot_histogram(self, hist, img=None):
         """Plot histogram
