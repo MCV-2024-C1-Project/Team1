@@ -44,14 +44,14 @@ The project is structured into four phases divided in weeks, each contributing t
   3. **Background removal**: with QSD2_W3 (images with a background) our goal was to use the GrabCut algorithm, supported by morphological operations, to  segment foreground objects (paintings) from complex backgrounds, providing cleaner binary masks for accurate contour detection and cropping of paintings.
 
 ### Key Components:
-1. Image Preprocessing:
+1. **Image Preprocessing**:
 - Denoising: remove noise from images, possibly using wavelet-based techniques to retain essential features.
 - Color Space Transformation: transform images into different color spaces (e.g., HSV, YCrCb, Gray) to enhance feature extraction and similarity calculations.
-2. Feature Extraction:
+2. **Feature Extraction**:
 - Wavelet Descriptors: extracting features through wavelet decomposition in order to capture the texture and color distribution of the images.
 - DCT: coefficients are computed for each image and are then used as discrete descriptors.
 - LBP: capture the local structure by comparing each pixel to its neighbors.
-3. Segmentation:
+3. **Segmentation**:
 - GrabCut Algorithm: Used to separate foreground (paintings) from the background, leveraging Gaussian Mixture Models (GMMs) and graph cuts.
 - Morphological Operations: Dilation and erosion steps to refine binary masks by filling gaps, removing noise, and enhancing key contours.
 
@@ -64,6 +64,8 @@ To run this project, make sure you have the following libraries installed:
 ![Plotly](https://img.shields.io/badge/Plotly-239120?style=for-the-badge&logo=plotly&logoColor=white)
 ![Scipy](https://img.shields.io/badge/scipy-FF6633?style=for-the-badge&logo=spicy&logoColor=white)
 ![Pickle](https://img.shields.io/badge/Pickle-0a9c6b?style=for-the-badge&logo=python&logoColor=white)
+![PyWavelets](https://img.shields.io/badge/PyWavelets-1d8bcd?style=for-the-badge&logo=python&logoColor=white)
+![SCIKIT-IMAGE](https://img.shields.io/badge/scikit--image-5b80b1?style=for-the-badge&logo=python&logoColor=white)
 
 
 You can install the required libraries with the following command:
