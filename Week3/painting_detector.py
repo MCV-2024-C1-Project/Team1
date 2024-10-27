@@ -29,11 +29,11 @@ class PaintingDetector:
         _, binary_mask = cv2.threshold(gray_result, 1, 255, cv2.THRESH_BINARY)
 
         kernel = np.ones((5, 5), np.uint8)
-        binary_mask = cv2.dilate(binary_mask, kernel, iterations=3)
-        kernel = np.ones((25, 25), np.uint8)
-        binary_mask = cv2.erode(binary_mask, kernel, iterations=2)
+        binary_mask = cv2.dilate(binary_mask, kernel, iterations=2)
+        kernel = np.ones((15, 15), np.uint8)
+        binary_mask = cv2.erode(binary_mask, kernel, iterations=4)
         kernel = np.ones((5, 5), np.uint8)
-        return cv2.dilate(binary_mask, kernel, iterations=5)
+        return cv2.dilate(binary_mask, kernel, iterations=11)
 
     def _find_contours(self, binary_mask):
         return cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
