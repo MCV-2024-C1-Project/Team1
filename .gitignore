@@ -10,3 +10,7 @@ Week1/*.png
 Week2/*.png
 Week3/*.png
 Week3/output
+*.pkl
+*.pickle
+Week4/imagenes
+Week4/output
