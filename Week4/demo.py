@@ -13,12 +13,15 @@ from retrieval_system import RetrievalSystem
 from evaluator import Evaluator
 
 def compute_bg_removal(imgs_with_bg, imgs_names, output_dir):
-    all_cropped=[]
+    all_cropped={}
+    for idx, img in enumerate(imgs_with_bg):
+        all_cropped[idx]=[]
     for idx, img in enumerate(imgs_with_bg):
         detector = PaintingDetector(img)
         # Detect and crop paintings
         output_mask, cropped_paintings = detector.detect_and_crop_paintings()
-        all_cropped.append(cropped_paintings)
+        for i in cropped_paintings:
+            all_cropped[idx].append(i)
         # Save mask
         name, ext = imgs_names[idx].rsplit(".", 1)
         filename = f"{name}.png"
@@ -27,7 +30,6 @@ def compute_bg_removal(imgs_with_bg, imgs_names, output_dir):
 
 def color_sift(image, edgeThreshold=5, nfeatures=200):
     sift = cv2.SIFT_create(edgeThreshold=edgeThreshold, nfeatures=nfeatures)
-
     keypoints_all = []
     descriptors_all = []
     for i in range(3):
@@ -125,9 +127,9 @@ def compute_homography(img_ref, kp_r, img_query, kp_q, matches):
     return corrected_img
 
 def get_valid_methods_dict():
-    ORB = {'threshold': 50, 'norm': cv2.NORM_HAMMING, 'compute_keypoints_and_descriptors': orb_keypoint_detection, 'color_scale': 'gray', 'min_matches_threshold': 35}
-    SIFT = {'threshold': 180, 'norm': cv2.NORM_L2, 'compute_keypoints_and_descriptors': sift_keypoint_detection, 'color_scale': 'gray', 'min_matches_threshold': 35}
-    COLOR_SIFT = {'threshold': 180, 'norm': cv2.NORM_L2, 'compute_keypoints_and_descriptors': sift_keypoint_detection, 'color_scale': 'rgb', 'min_matches_threshold': 35}
+    ORB = {'threshold': 50, 'norm': cv2.NORM_HAMMING, 'compute_keypoints_and_descriptors': orb_keypoint_detection, 'color_scale': 'gray', 'min_matches_threshold': 32}
+    SIFT = {'threshold': 180, 'norm': cv2.NORM_L2, 'compute_keypoints_and_descriptors': sift_keypoint_detection, 'color_scale': 'gray', 'min_matches_threshold': 32}
+    COLOR_SIFT = {'threshold': 180, 'norm': cv2.NORM_L2, 'compute_keypoints_and_descriptors': sift_keypoint_detection, 'color_scale': 'rgb', 'min_matches_threshold': 32}
     
     return {'orb': ORB, 'sift': SIFT, 'color_sift': COLOR_SIFT}
 
@@ -176,8 +178,8 @@ def get_predictions(imgs_query, imgs_ref, k_best_results=1, method='orb', imgs_q
         
         # Asegurarse de que img_group es una lista (puede contener una o más imágenes)
         if not isinstance(img_group, list):
-            img_group = [img_group]
-
+           img_group = [img_group]
+        print("index of img group",idx_group,"shape of img group",len(img_group))
         for idx_q, img_q in enumerate(img_group):
             # Convertir la imagen a RGB
             img_q = cv2.cvtColor(img_q, cv2.COLOR_BGR2RGB)
@@ -185,7 +187,7 @@ def get_predictions(imgs_query, imgs_ref, k_best_results=1, method='orb', imgs_q
             # Compute query keypoints and descriptors
             kp_q, des_q = method_config['compute_keypoints_and_descriptors'](img_q, color_scale=method_config['color_scale'])
             if kp_q is None or des_q is None:
-                print(f"Error detecting keypoints or descriptors in the query image {idx_q} of group {idx_group}.")
+                print(f"WARNING: detecting keypoints or descriptors in the query image {idx_q} of group {idx_group}.")
                 group_results.append(None)
                 continue
 
@@ -198,7 +200,7 @@ def get_predictions(imgs_query, imgs_ref, k_best_results=1, method='orb', imgs_q
                 # Compute reference keypoints and descriptors
                 kp_r, des_r = method_config['compute_keypoints_and_descriptors'](img_r, color_scale=method_config['color_scale'])
                 if kp_r is None or des_r is None:
-                    print(f"Error detecting keypoints or descriptors in the reference image {idx_r}.")
+                    print(f"WARNING: detecting keypoints or descriptors in the reference image {idx_r}.")
                     # Append placeholders to maintain consistent length
                     keypoints_r.append(None)
                     descriptors_r.append(None)
@@ -257,13 +259,13 @@ def get_predictions(imgs_query, imgs_ref, k_best_results=1, method='orb', imgs_q
             if not isinstance(result, list):
                 print(f'max value: {np.max(np.array(group))}')
                 if np.max(np.array(group)) < method_config['min_matches_threshold']:
-                    top_k.append([[-1] * k_best_results])  # Vector de -1s de longitud k
+                    top_k.append([-1])  # Vector de -1s de longitud k
                     break
                 top_k.append(RetrievalSystem().retrieve_top_k(np.array(group).reshape(1, -1), reverse=True, k=k_best_results))
                 break
             print(f'max value: {np.max(np.array(result))}')
             if np.max(np.array(result)) < method_config['min_matches_threshold']:
-                top_k.append([[-1] * k_best_results])  # Vector de -1s de longitud k
+                top_k.append([-1])  # Vector de -1s de longitud k
             else:
                 top_k.append(RetrievalSystem().retrieve_top_k(np.array(result).reshape(1, -1), reverse=True, k=k_best_results))
         top_results.append(top_k)
@@ -282,43 +284,44 @@ def get_predictions(imgs_query, imgs_ref, k_best_results=1, method='orb', imgs_q
 
 
 def main():
-    templates_path = "../content/BBDD"
+    templates_path = "C:/Users/laila/Downloads/BBDD/BBDD"
     template_images, template_names = DataLoader({"dataset": templates_path}).load_images_from_folder(extension="jpg", return_names=True)
     
-    query_path = "../content/qsd1_w4"
+    query_path = "C:/Users/laila/Downloads/qsd1_w4/qsd1_w4"
     query_images, query_names = DataLoader({"dataset": query_path}).load_images_from_folder(extension="jpg", return_names=True)
 
     # Create output dir
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
-
-    # # Load images with noise and bg
-    # cropped_dir = os.path.join(output_dir, "cropped")
-    # os.makedirs(cropped_dir, exist_ok=True)
-    # print("Removing bg...")
-    # cropped_paintings = compute_bg_removal(query_images, query_names, cropped_dir)
-
+        
+    # Denoise
+    denoised_dir = os.path.join(output_dir, "denoised")
+    os.makedirs(denoised_dir, exist_ok=True)
+    print("Denoising...")
+    denoised_images = Denoising(query_images, template_images, noisy_names=query_names, denoised_dir=denoised_dir).process_images(plot=False)
+    denoised_images, denoised_names = DataLoader({"dataset": denoised_dir}).load_images_from_folder(extension="jpg", return_names=True)
+    # Load images with noise and bg
+    cropped_dir = os.path.join(output_dir, "cropped")
+    os.makedirs(cropped_dir, exist_ok=True)
+    print("Removing bg...")
+    cropped_paintings = compute_bg_removal(denoised_images, query_names, cropped_dir)
     # # Dump the list into a pickle file
-    # filepath = os.path.join(cropped_dir, 'cropped_paintings.pkl')
-    # with open(filepath, 'wb') as file:
-    #     pickle.dump(cropped_paintings, file)
+    filepath = os.path.join(cropped_dir, 'cropped_paintings.pkl')
+    with open(filepath, 'wb') as file:
+        pickle.dump(cropped_paintings, file)
     
     cropped_dir = os.path.join(output_dir, "cropped")
     filepath = os.path.join(cropped_dir, 'cropped_paintings.pkl')
     with open(filepath, 'rb') as file:
         cropped_paintings = pickle.load(file)
-
-    # Denoise
-    denoised_dir = os.path.join(output_dir, "denoised")
-    os.makedirs(denoised_dir, exist_ok=True)
-    print("Denoising...")
-    denoised_images = Denoising(cropped_paintings, template_images, noisy_names=query_names, denoised_dir=denoised_dir).process_images(plot=False)
-    # denoised_images, denoised_names = DataLoader({"dataset": denoised_dir}).load_images_from_folder(extension="jpg", return_names=True)
-
-
+    
+    query_groups=[]
+    for idx in cropped_paintings:
+        query_groups.append(cropped_paintings[idx])
+        
     # Get predictions
     k_best_results = 1
-    predictions = get_predictions(denoised_images, template_images, k_best_results=k_best_results, method='orb', imgs_ref_names=template_names, output_dir=output_dir)
+    predictions = get_predictions(query_groups, template_images, k_best_results=k_best_results, method='orb', imgs_ref_names=template_names, output_dir=output_dir)
 
     # Load ground-truth
     gt_path = os.path.join(query_path, 'gt_corresps.pkl')

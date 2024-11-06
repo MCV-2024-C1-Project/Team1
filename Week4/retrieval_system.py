@@ -21,5 +21,8 @@ class RetrievalSystem:
             sorted_scores = np.argsort(scores, axis=1)[:,::-1]
         
         top_k_results = sorted_scores[:, :k]
-        
-        return top_k_results.tolist()
+
+        if len(top_k_results.tolist())==1:
+            return top_k_results.tolist()[0]
+        else:
+            return top_k_results.tolist()

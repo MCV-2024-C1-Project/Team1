@@ -105,16 +105,16 @@ def get_predictions(imgs_query, imgs_ref, feature_methods=None, similarity_measu
 
 def main():
     # Load reference dataset
-    imgs_ref_path = "../content/BBDD"
+    imgs_ref_path = "C:/Users/laila/Downloads/BBDD/BBDD"
     imgs_ref = DataLoader({"dataset":imgs_ref_path}).load_images_from_folder()
 
     # TASK 1 ----------------------------------------------------------------
     # Load datasets
     # Gt images
-    imgs_non_aug_path = "../content/qsd1_w3/non_augmented"
+    imgs_non_aug_path = "C:/Users/laila/Downloads/qsd1_w3/qsd1_w3/non_augmented"
     imgs_non_aug = DataLoader({"dataset":imgs_non_aug_path}).load_images_from_folder()
     # Noisy images
-    imgs_noisy_path = "../content/qsd1_w3"
+    imgs_noisy_path = "C:/Users/laila/Downloads/qsd1_w3/qsd1_w3"
     imgs_noisy, noisy_names = DataLoader({"dataset":imgs_noisy_path}).load_images_from_folder(return_names=True)
 
     output_dir = "output"
@@ -149,7 +149,7 @@ def main():
                                 )
 
     # Load ground-truth
-    with open('../content/qsd1_w3/gt_corresps.pkl', 'rb') as file:
+    with open('C:/Users/laila/Downloads/qsd1_w3/qsd1_w3/gt_corresps.pkl', 'rb') as file:
         gt = pickle.load(file)
 
     print(f"\nlen predictions: {len(predictions)}")
@@ -166,7 +166,7 @@ def main():
     # TASK 3 + TASK 4 ----------------------------------------------------------------
     print("TASK 3 + TASK 4 ----------------------------------------")
 
-    with open('cropped_paintings.pkl', 'rb') as file:
+    with open('Team1/Week3/cropped_paintings.pickle', 'rb') as file:
         imgs_cropped = pickle.load(file)
     
     # Denoise
@@ -189,7 +189,7 @@ def main():
                                 )
 
     # Load ground-truth
-    with open('../content/qsd2_w3/gt_corresps.pkl', 'rb') as file:
+    with open('C:/Users/laila/Downloads/qsd2_w3/qsd2_w3/gt_corresps.pkl', 'rb') as file:
         gt = pickle.load(file)
 
     print(f"\nlen predictions: {len(predictions)}")

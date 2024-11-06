@@ -15,7 +15,7 @@ class PaintingDetector:
         return cleaned_mask, cropped_paintings
 
     def _apply_grabcut(self):
-        rect = (10, 10, self.image.shape[1] - 20, self.image.shape[0] - 20)
+        rect = (1, 1, self.image.shape[1]-2 , self.image.shape[0]-2 )
         bgd_model = np.zeros((1, 65), np.float64)
         fgd_model = np.zeros((1, 65), np.float64)
         cv2.grabCut(self.image, self.mask, rect, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
@@ -28,20 +28,22 @@ class PaintingDetector:
         gray_result = cv2.cvtColor(binary_mask, cv2.COLOR_BGR2GRAY)
         _, binary_mask = cv2.threshold(gray_result, 1, 255, cv2.THRESH_BINARY)
 
-        kernel = np.ones((5, 5), np.uint8)
-        binary_mask = cv2.dilate(binary_mask, kernel, iterations=2)
-        kernel = np.ones((15, 15), np.uint8)
-        binary_mask = cv2.erode(binary_mask, kernel, iterations=4)
-        kernel = np.ones((5, 5), np.uint8)
-        return cv2.dilate(binary_mask, kernel, iterations=11)
+        #kernel = np.ones((3, 3), np.uint8)
+        #binary_mask = cv2.dilate(binary_mask, kernel, iterations=1)
+        kernel = np.ones((17, 17), np.uint8)
+        binary_mask = cv2.erode(binary_mask, kernel, iterations=3)
+        kernel = np.ones((13, 13), np.uint8)
+        return cv2.dilate(binary_mask, kernel, iterations=6)
 
     def _find_contours(self, binary_mask):
         return cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
 
     def _crop_paintings(self, contours):
         cropped_paintings = []
+        # Sort contours based on the center coordinates (y first, then x)
+        contours = sorted(contours, key=lambda contour: (cv2.boundingRect(contour)[1] + cv2.boundingRect(contour)[3] / 2, cv2.boundingRect(contour)[0] + cv2.boundingRect(contour)[2] / 2))
         for contour in contours:
-            if cv2.contourArea(contour) < 1000:  # Filter small contours
+            if cv2.contourArea(contour) < 2000: 
                 continue
             x, y, w, h = cv2.boundingRect(contour)
             cropped = self.image[y:y+h, x:x+w]
