@@ -1,7 +1,6 @@
 import os
 import cv2
 import pickle
-import imageio
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -284,16 +283,22 @@ def get_predictions(imgs_query, imgs_ref, k_best_results=1, method='orb', imgs_q
 
 
 def main():
-    templates_path = "C:/Users/laila/Downloads/BBDD/BBDD"
+    templates_path = "../content/BBDD"
     template_images, template_names = DataLoader({"dataset": templates_path}).load_images_from_folder(extension="jpg", return_names=True)
-    
-    query_path = "C:/Users/laila/Downloads/qsd1_w4/qsd1_w4"
+
+    if not template_images:
+        raise ValueError("Reference images not found. Please check the path.")
+
+    query_path = "../content/qsd1_w4"
     query_images, query_names = DataLoader({"dataset": query_path}).load_images_from_folder(extension="jpg", return_names=True)
+
+    if not query_images:
+        raise ValueError("Query images not found. Please check the path.")
 
     # Create output dir
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
-        
+    
     # Denoise
     denoised_dir = os.path.join(output_dir, "denoised")
     os.makedirs(denoised_dir, exist_ok=True)
