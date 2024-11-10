@@ -131,6 +131,8 @@ This repository contains nine Python files, each serving a specific role in the 
 
 8. **painting_detector.py**
    - Utilizes the grabcut algorithm to remove backgrounds from paintings.
+9. **descriptors.py**
+    - Descriptors class that computes keypoints and descriptors (ORB, SIFT, Color-SIFT) for a set of reference and query images, performs descriptor matching, and evaluates the best matches based on predefined thresholds and similarity measures.
 
 ### Main Script:
 
