@@ -76,7 +76,7 @@ def main():
     print(f"des_q : {len(des_q)}")
 
     k = 1
-    predictions = kd.compute_matches(k_best_results=k, norm=params['norm'], threshold=params['threshold'], min_matches_threshold=params['min_matches_threshold'])
+    predictions = kd.compute_matches(k_best_results=k, norm=params['norm'], threshold=params['threshold'], min_matches_threshold=params['min_matches_threshold'], plot=False)
 
     # Load ground-truth
     gt_path = os.path.join(query_path, 'gt_corresps.pkl')
@@ -91,6 +91,8 @@ def main():
     # Evaluate
     mapk = Evaluator().mapk(gt, predictions, k)
     print(f"mapk: {mapk}")
+
+    input("Press Enter to exit")
 
 if __name__ == '__main__':
     main()

@@ -35,7 +35,7 @@ class Descriptors():
     
     def get_default_params(self, method):
         if method == 'orb':
-            params = {'threshold': 50, 'norm': cv2.NORM_HAMMING, 'min_matches_threshold': 32}
+            params = {'threshold': 50, 'norm': cv2.NORM_HAMMING, 'min_matches_threshold': 41}
         elif method == 'sift':
             params = {'threshold': 180, 'norm': cv2.NORM_L2, 'min_matches_threshold': 28, 'edgeThreshold': 5, 'nfeatures': 300}
         elif method == 'color_sift':
@@ -121,7 +121,7 @@ class Descriptors():
     def orb_keypoint_detection(self, image, threshold=50, norm=cv2.NORM_HAMMING, min_matches_threshold=32):
         if image.ndim == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        orb = cv2.ORB_create()
+        orb = cv2.ORB_create(scoreType=cv2.ORB_HARRIS_SCORE, nlevels=16)
         kp, des = orb.detectAndCompute(image, None)
         return kp, des
 
@@ -149,14 +149,14 @@ class Descriptors():
 
         return kp, des
 
-    def compute_matches(self, k_best_results, norm, threshold, min_matches_threshold):
+    def compute_matches(self, k_best_results, norm, threshold, min_matches_threshold, plot=False):
         results = []
         for idx_q_group, des_q_group in enumerate(self.des_q):
             group_results = []
             for idx_q, des_q in enumerate(des_q_group):
                 if des_q is None:
                     print(f"WARNING: detecting keypoints or descriptors in the query image {idx_q} of group {idx_q_group}.")
-                    group_results.append(None)
+                    # group_results.append(None)
                     continue
                 best_matches, n_best_matches = ([], [])
                 for idx_r, des_ref in enumerate(self.des_r):
@@ -170,6 +170,9 @@ class Descriptors():
                     matches = self.get_matches(des_r, des_q, norm)
                     # Filter best matches
                     good_matches = [m for m in matches if m.distance < threshold]
+                    # Knn
+                    # good_matches = matches
+                    
                     best_matches.append(good_matches)
                     n_best_matches.append(len(good_matches))
                 if not n_best_matches:
@@ -184,9 +187,13 @@ class Descriptors():
                 self.des_r_best.append(self.des_r[idx_best_match])
                 self.img_r_best.append(self.db_ref[idx_best_match])
             
+                if plot:
+                    matches = self.get_matches(self.des_r[idx_best_match][0], des_q, norm)
+                    self.plot_matches(self.db_ref[idx_best_match], self.kp_r[idx_best_match][0], self.db_query[idx_q_group][idx_q], self.kp_q[idx_q_group][idx_q], matches, threshold)
+
             results.append(group_results)
         results = [group[0] if len(group) == 1 else group for group in results]
-
+        
         top_k = self.get_top_k_results(results, k_best_results=k_best_results, min_matches_threshold=min_matches_threshold)
         predictions = self.get_predictions(top_k)
         return predictions
@@ -207,7 +214,7 @@ class Descriptors():
         
         min_value = np.min(result)
         max_value = np.max(result)
-        second_max_value = np.max(result[result != max_value])
+        # second_max_value = np.max(result[result != max_value])
         p_10 = np.count_nonzero(result < 10) / len(result)
         # print(max_value - second_max_value)
         # print(p_10)
@@ -243,11 +250,28 @@ class Descriptors():
         bf = cv2.BFMatcher(norm, crossCheck=True)
         matches = bf.match(descriptors_ref, descriptors_query)
         matches = sorted(matches, key=lambda x: x.distance)
+
+        # Knn
+        # matches = bf.knnMatch(descriptors_ref, descriptors_query, k=2)
+        # ratio=0.75
+        # good_matches = []
+        # for m, n in matches:
+        #     if m.distance < ratio * n.distance:
+        #         good_matches.append([m])  # Usar formato [[m], [n], ...] para drawMatchesKnn
+        # return good_matches
+
         return matches
 
     def plot_matches(self, img_ref, kp_r, img_query, kp_q, matches, threshold):
-        good_matches = [[m] for m in matches if m.distance < threshold]
-        img_matches  = cv2.drawMatchesKnn(img_ref, kp_r, img_query, kp_q, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        img_ref = cv2.cvtColor(img_ref, cv2.COLOR_BGR2RGB)
+        img_query = cv2.cvtColor(img_query, cv2.COLOR_BGR2RGB)
+        good_matches = [m for m in matches if m.distance < threshold]
+        img_matches  = cv2.drawMatches(img_ref, kp_r, img_query, kp_q, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
+        # Knn
+        # good_matches = matches
+        # img_matches  = cv2.drawMatchesKnn(img_ref, kp_r, img_query, kp_q, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        
         plt.figure(figsize=(10,10))
         plt.imshow(img_matches)
         plt.title('Good Matches found with ORB')
