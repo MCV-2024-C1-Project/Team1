@@ -76,9 +76,9 @@ To run this project, make sure you have the following libraries installed:
 
 You can install the required libraries with the following command:
 
-````bash
+```bash
 pip install numpy opencv-python plotly scipy scikit-image pywavelets
-
+```
 You can install the required libraries with the following command:
 
 ```bash
