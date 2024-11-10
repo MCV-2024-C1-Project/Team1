@@ -25,13 +25,13 @@ def compute_bg_removal(imgs_with_bg, imgs_names, output_dir):
     return all_cropped
 
 def main():
-    templates_path = "../content/BBDD"
+    templates_path = "C:/Users/laila/Downloads/BBDD/BBDD"
     template_images, template_names = DataLoader({"dataset": templates_path}).load_images_from_folder(extension="jpg", return_names=True)
 
     if not template_images:
         raise ValueError("Reference images not found. Please check the path.")
 
-    query_path = "../content/qsd1_w4"
+    query_path = "C:/Users/laila/Downloads/qsd1_w4/qsd1_w4"
     query_images, query_names = DataLoader({"dataset": query_path}).load_images_from_folder(extension="jpg", return_names=True)
 
     if not query_images:
